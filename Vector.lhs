@@ -1,3 +1,4 @@
+> {-# LANGUAGE PatternSynonyms #-}
 > {-# LANGUAGE KindSignatures #-}
 > {-# LANGUAGE DataKinds #-}
 > {-# LANGUAGE GADTs #-}
@@ -5,7 +6,7 @@
 > module Data.Vector where
 
 > import Data.Kind
-> import Prelude hiding (head, tail) -- agregar nombres aca?
+> import Prelude hiding (head, tail, last) -- agregar nombres aca?
 
 Esto se puede mover a otro módulo (o usar alguna implementación
  externa)
@@ -20,18 +21,30 @@ En este caso que vamos a querer usar 'en serio' el tipo de datos poner
 >   VNil  :: Vec Z a
 >   VCons :: a -> Vec n a -> Vec (S n) a
 
-(++) :: [a] -> [a] -> [a] infixr 5
-If the first list is not finite, the result is the first list.
+> infixr 2 :.
+> pattern (:.) :: a -> Vec n a -> Vec (S n) a
+> pattern a :. as = VCons a as
+
+> example3 = 'a' :. 'b' :. 'c' :. VNil
 
 > head :: Vec (S n) a -> a
 > head (VCons a _) = a
 
-last :: [a] -> a
-Extract the last element of a list, which must be finite and non-empty.
+
+> class Last (n :: Nat) where
+>   last :: Vec (S n) a -> a
+
+> instance Last Z where
+>   last (VCons a VNil) = a
+
+> instance Last n => Last (S n) where
+>   last (VCons a as) = last as
 
 
-tail :: [a] -> [a]
-Extract the elements after the head of a list, which must be non-empty.
+> tail :: Vec (S n) a -> Vec n a
+> tail (VCons _ as) = as
+
+
 
 init :: [a] -> [a]
 Return all the elements of a list except the last one. The list must
