@@ -84,6 +84,10 @@ last :: [a] -> a
  ocurre generar una constraint)
 
 
+> last' :: Vec (S n) a -> a
+> last' (VCons a VNil) = a 
+> last' (VCons a as@(VCons _ _))   = last' as 
+
 tail :: [a] -> [a]
 
 > tail :: Vec (S n) a -> Vec n a
