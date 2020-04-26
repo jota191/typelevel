@@ -1,21 +1,34 @@
+> {-# LANGUAGE FlexibleInstances #-}
+> {-# LANGUAGE UndecidableInstances #-}
+> {-# LANGUAGE TypeOperators #-}
 > {-# LANGUAGE PatternSynonyms #-}
 > {-# LANGUAGE KindSignatures #-}
 > {-# LANGUAGE DataKinds #-}
 > {-# LANGUAGE GADTs #-}
-> 
+> {-# LANGUAGE TypeFamilies #-}
 > module Data.Vector where
 
 > import Data.Kind
-> import Prelude hiding (head, tail, last) -- agregar nombres aca?
+> import Prelude hiding
+>   (head, tail, last, init) -- agregar nombres aca
 
 Esto se puede mover a otro módulo (o usar alguna implementación
  externa)
 
 > data Nat = Z | S Nat deriving (Eq, Ord, Read, Show)
 
+> type family (m :: Nat) :+ (n :: Nat) :: Nat where
+>   Z     :+ n = n
+>   (S m) :+ n = S (m :+ n)
+
+> type family (m :: Nat) :* (n :: Nat) :: Nat where
+>   Z     :+ n = Z
+>   (S m) :+ n = n :+ (m :* n)
+
+
 En este caso que vamos a querer usar 'en serio' el tipo de datos poner
- el índice Nat antes que el parámetro Type es una buena idea (por
- ej. para implementar las instancias para la clase Functor)
+el índice Nat antes que el parámetro Type es una buena idea (por
+ej. para implementar las instancias para la clase Functor)
 
 > data Vec (n :: Nat) (a :: Type) :: Type where
 >   VNil  :: Vec Z a
@@ -27,9 +40,36 @@ En este caso que vamos a querer usar 'en serio' el tipo de datos poner
 
 > example3 = 'a' :. 'b' :. 'c' :. VNil
 
+> instance Show a => Show (Vec Z a) where
+>   show (VNil) = "[]"
+> instance Show a => Show (Vec (S Z) a) where
+>   show (a :. VNil) = '[': show a ++ "]"
+> instance (Show a, Show (Vec (S n) a)) => Show (Vec (S (S n)) a) where
+>   show (a :. as) = let ('[':shas) = show as
+>                    in '[' : show a ++ ", " ++ shas 
+
+
+(++) :: [a] -> [a] -> [a]
+
+> append :: Vec n a -> Vec m a -> Vec (n :+ m) a
+> append VNil as = as
+> append (VCons a as) as' = a :. append as as'
+
+Esto en lugar del anterior no anda:
+
+< append (a :. as) as' = a :. append as as'
+
+Con pattern synonyms se pierder algo al hacer pattern matching?
+
+
+
+head :: [a] -> a
+
 > head :: Vec (S n) a -> a
 > head (VCons a _) = a
 
+
+last :: [a] -> a
 
 > class Last (n :: Nat) where
 >   last :: Vec (S n) a -> a
@@ -40,13 +80,27 @@ En este caso que vamos a querer usar 'en serio' el tipo de datos poner
 > instance Last n => Last (S n) where
 >   last (VCons a as) = last as
 
+(no me gusta que el índice no sea el largo del vector, pero solo se me
+ ocurre generar una constraint)
+
+
+tail :: [a] -> [a]
 
 > tail :: Vec (S n) a -> Vec n a
 > tail (VCons _ as) = as
 
 
-
 init :: [a] -> [a]
+
+> class Init (n :: Nat) where
+>   init :: Vec (S n) a -> Vec n a
+
+> instance Init Z where
+>   init (a :. VNil) = VNil
+
+> instance Init n => Init (S n) where
+>   init (a :. as) = a :. init as
+
 Return all the elements of a list except the last one. The list must
  be non-empty.
 
