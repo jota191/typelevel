@@ -8,6 +8,8 @@
 > {-# LANGUAGE TypeFamilies #-}
 > module Data.Vector where
 
+> import Data.Foldable
+> import Data.Type.Equality
 > import Data.Kind
 > import Prelude hiding
 >   (head, tail, last, init, uncons) -- agregar nombres aca
@@ -25,7 +27,9 @@ Esto se puede mover a otro módulo (o usar alguna implementación
 >   Z     :+ n = Z
 >   (S m) :+ n = n :+ (m :* n)
 
-
+> data SNat (n :: Nat) where
+>   SZ :: SNat Z
+>   SS :: SNat n -> SNat (S n)
 
 En este caso que vamos a querer usar 'en serio' el tipo de datos poner
 el índice Nat antes que el parámetro Type es una buena idea (por
@@ -133,13 +137,27 @@ esta puede ser una implementacion)
 >   SafePred Z     = Z
 >   SafePred (S n) = n
 
-null :: Foldable t => t a -> Bool
+> null :: Vec n a -> Bool
+> null = foldr (\_ _ -> False) True
+
+> null' :: Vec n a -> Maybe (n :~: Z)
+> null' VNil        = Just Refl
+> null' (VCons _ _) = Nothing
 
 Test whether the structure is empty. The default implementation is
  optimized for structures that are similar to cons-lists, because
  there is no general way to do better.
 
-length :: Foldable t => t a -> Int
+> length :: Vec n a -> Int
+> length = foldl' (\c _ -> c+1) 0
+
+(se podrá hacer un fold para estas cosas?)
+
+> length' :: Vec n a -> SNat n
+> length' VNil = SZ
+> length' (VCons _ as) = SS $ length' as
+
+
 Returns the size/length of a finite
  structure as an Int. The default implementation is optimized for
  structures that are similar to cons-lists, because there is no
@@ -179,6 +197,10 @@ The permutations function returns the list of all permutations of the argument.
 
 permutations "abc" => ["abc","bac","cba","bca","cab","acb"]
 
+
+> instance Foldable (Vec n) where
+>   foldr _ z VNil         = z
+>   foldr f z (VCons a as) = f a (foldr f z as) 
 
 foldl :: Foldable t => (b -> a -> b) -> b -> t a -> b
 Left-associative fold of a structure.
