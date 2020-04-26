@@ -10,7 +10,7 @@
 
 > import Data.Kind
 > import Prelude hiding
->   (head, tail, last, init) -- agregar nombres aca
+>   (head, tail, last, init, uncons) -- agregar nombres aca
 
 Esto se puede mover a otro módulo (o usar alguna implementación
  externa)
@@ -24,6 +24,7 @@ Esto se puede mover a otro módulo (o usar alguna implementación
 > type family (m :: Nat) :* (n :: Nat) :: Nat where
 >   Z     :+ n = Z
 >   (S m) :+ n = n :+ (m :* n)
+
 
 
 En este caso que vamos a querer usar 'en serio' el tipo de datos poner
@@ -105,6 +106,11 @@ init :: [a] -> [a]
 > instance Init n => Init (S n) where
 >   init (a :. as) = a :. init as
 
+
+> init' :: Vec (S n) a -> Vec n a
+> init' (VCons a VNil) = VNil 
+> init' (VCons a as@(VCons _ _))   = VCons a $ init' as 
+
 Return all the elements of a list except the last one. The list must
  be non-empty.
 
@@ -113,6 +119,19 @@ Decompose a list into its head and tail. If the list is empty, returns
  Nothing. If the list is non-empty, returns Just (x, xs), where x is
  the head of the list and xs its tail.
 
+> uncons1 :: Vec (S n) a -> (a, Vec n a)
+> uncons1 (VCons a as) = (a, as)
+
+(no creo que el uncons con Maybe sea de mucha utilidad, pero
+esta puede ser una implementacion)
+
+> uncons :: Vec n a -> Maybe (a, Vec (SafePred n) a)
+> uncons VNil         = Nothing
+> uncons (VCons a as) = Just (a, as)
+
+> type family SafePred (n :: Nat) :: Nat where
+>   SafePred Z     = Z
+>   SafePred (S n) = n
 
 null :: Foldable t => t a -> Bool
 
