@@ -6,6 +6,7 @@
 > {-# LANGUAGE DataKinds #-}
 > {-# LANGUAGE GADTs #-}
 > {-# LANGUAGE TypeFamilies #-}
+> {-# LANGUAGE RankNTypes #-}
 > module Data.Vector where
 
 > import Data.Foldable
@@ -151,12 +152,17 @@ Test whether the structure is empty. The default implementation is
 > length :: Vec n a -> Int
 > length = foldl' (\c _ -> c+1) 0
 
-(se podrá hacer un fold para estas cosas?)
 
 > length' :: Vec n a -> SNat n
-> length' VNil = SZ
-> length' (VCons _ as) = SS $ length' as
+> {-length' VNil = SZ
+> length' (VCons _ as) = SS $ length' as-}
+> length' = foldrN (const SS) SZ
 
+(sera demasiado especifico este fold?)
+
+> foldrN :: (forall m. a -> b m -> b (S m)) -> b Z -> Vec n a -> b n
+> foldrN f e VNil = e
+> foldrN f e (VCons a as) = f a $ foldrN f e as
 
 Returns the size/length of a finite
  structure as an Int. The default implementation is optimized for
