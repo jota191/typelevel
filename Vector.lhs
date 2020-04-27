@@ -298,7 +298,10 @@ folds parametricos en n
 > newtype FlipVec a n = FlipVec { unFlip :: Vec n a }
 > flipVCons a = FlipVec . VCons a . unFlip
 > flipVNil  = FlipVec VNil
->
+
+
+pruebas usando singleton. seguramente sea mas eficiente hacerlas con type classes y proxies,
+para no generar los valores (aunque igual en el core se generan las cadenas de cases).
 
 > mzProof :: forall m . SNat m -> m :~: (m :+ Z) 
 > mzProof  SZ     = Refl
