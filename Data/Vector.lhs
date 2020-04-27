@@ -19,7 +19,7 @@
 > import Data.Proxy
 > import Data.Kind
 > import Prelude hiding
->   (head, tail, last, init, uncons, map) -- agregar nombres aca
+>   (head, tail, last, init, uncons, map, filter) -- agregar nombres aca
 
 
 
@@ -45,6 +45,10 @@ ej. para implementar las instancias para la clase Functor)
 > instance (Show a, Show (Vec (S n) a)) => Show (Vec (S (S n)) a) where
 >   show (a :. as) = let ('[':shas) = show as
 >                    in '[' : show a ++ ", " ++ shas 
+
+> data SomeVec a where
+>   SomeVec :: Vec n a -> SomeVec a
+
 
 
 (++) :: [a] -> [a] -> [a]
@@ -447,18 +451,29 @@ The find function
  the structure matching the predicate, or Nothing if there is no such
  element.
 
+
 filter :: (a -> Bool) -> [a] -> [a]
+No hay forma de saber estáticamente el largo del vector resultante.
+En un lenguaje de tipos dependientes usaríamos Σ(n∈N,Vec n a)
 
-filter, applied to a predicate and a list,
-returns the list of those elements that satisfy the predicate; i.e.,
+> filter :: (a -> Bool) -> Vec n a -> SomeVec a
+> filter _ VNil = SomeVec VNil
+> filter p (VCons a as)
+>   = case filter p as of
+>       SomeVec as' ->
+>         if p a
+>         then SomeVec $ VCons a as'
+>         else SomeVec as'
 
-filter p xs = [ x | x <- xs, p x]
 
 partition :: (a -> Bool) -> [a] -> ([a], [a])
 
-The partition function takes a predicate a list and returns the pair
- of lists of elements which do and do not satisfy the predicate,
- respectively; i.e.,
+> partition :: (a -> Bool) -> Vec n a -> (SomeVec a, SomeVec a)
+> partition p as = (filter p as, filter (not . p) as) 
+
+Acá se puede hacer algo que codifique la invariante del largo,
+claramente no con SomeVec porque no hay acceso a los índices,
+
 
 
 (!!) :: [a] -> Int -> a infixl 9
