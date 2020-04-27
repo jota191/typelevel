@@ -14,9 +14,8 @@
 
 > import Data.Nat
 > import Data.Type.Nat
-
-> import Data.Foldable
 > import Data.Type.Equality
+> import Data.Foldable
 > import Data.Proxy
 > import Data.Kind
 > import Prelude hiding
@@ -167,7 +166,7 @@ reverse :: [a] -> [a]
 reverse xs returns the elements of xs in reverse order. xs must be
  finite.
 
-> reverse :: ToSNat n => Vec n a -> Vec n a
+> reverse :: KnownNat n => Vec n a -> Vec n a
 > reverse = unFlip . foldlN (flip flipVCons) flipVNil 
 
 
@@ -269,28 +268,16 @@ folds parametricos en n
 > foldrN f e (VCons a as) = f a $ foldrN f e as
 
 
-> foldlN :: forall m n a b . ToSNat m => (forall k. b k -> a -> b (S k)) -> b m -> Vec n a -> b (m :+ n)
-> foldlN f e VNil = gcastWith (mzProof $ toSNat @ m) e 
-> foldlN f e (VCons a as) = gcastWith (msProof (toSNat @ m) (Proxy @ n)) $ foldlN f (f e a) as
+> foldlN :: forall m n a b . KnownNat m
+>   => (forall k. b k -> a -> b (S k)) -> b m -> Vec n a -> b (m :+ n)
+> foldlN f e VNil = gcastWith (mzProof $ natSing @ m) e 
+> foldlN f e (VCons a as) =
+>   gcastWith (msProof (natSing @ m) (Proxy @ n)) $ foldlN f (f e a) as
 
 > newtype FlipVec a n = FlipVec { unFlip :: Vec n a }
 > flipVCons a = FlipVec . VCons a . unFlip
 > flipVNil  = FlipVec VNil
 
-
-pruebas usando singleton. seguramente sea mas eficiente hacerlas con type classes y proxies,
-para no generar los valores (aunque igual en el core se generan las cadenas de cases).
-
-> mzProof :: forall m . SNat m -> m :~: (m :+ Z) 
-> mzProof  SZ     = Refl
-> mzProof (SS n) = cong $ mzProof n
-
-> msProof :: forall m n . SNat m -> Proxy (S n) ->  (m :+ S n)  :~: S (m :+ n)
-> msProof SZ _     = Refl
-> msProof (SS m) n = cong $ msProof m n 
-
-> cong :: (x :: Nat) :~: (y :: Nat) -> (f x :: Nat) :~: (f y :: Nat)
-> cong Refl = Refl
 
 
 
