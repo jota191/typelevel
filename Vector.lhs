@@ -7,13 +7,17 @@
 > {-# LANGUAGE GADTs #-}
 > {-# LANGUAGE TypeFamilies #-}
 > {-# LANGUAGE RankNTypes #-}
+> {-# LANGUAGE TypeApplications #-}
+> {-# LANGUAGE ScopedTypeVariables #-}
+
 > module Data.Vector where
 
 > import Data.Foldable
 > import Data.Type.Equality
+> import Data.Proxy
 > import Data.Kind
 > import Prelude hiding
->   (head, tail, last, init, uncons) -- agregar nombres aca
+>   (head, tail, last, init, uncons, map) -- agregar nombres aca
 
 Esto se puede mover a otro módulo (o usar alguna implementación
  externa)
@@ -25,12 +29,23 @@ Esto se puede mover a otro módulo (o usar alguna implementación
 >   (S m) :+ n = S (m :+ n)
 
 > type family (m :: Nat) :* (n :: Nat) :: Nat where
->   Z     :+ n = Z
->   (S m) :+ n = n :+ (m :* n)
+>   Z     :* n = Z
+>   (S m) :* n = n :+ (m :* n)
+
+TODO: pasar a singletons
 
 > data SNat (n :: Nat) where
 >   SZ :: SNat Z
 >   SS :: SNat n -> SNat (S n)
+
+> class ToSNat (n :: Nat) where
+>  toSNat :: SNat n
+>
+> instance ToSNat Z where
+>  toSNat = SZ
+> instance ToSNat n => ToSNat (S n) where
+>  toSNat = SS toSNat
+
 
 En este caso que vamos a querer usar 'en serio' el tipo de datos poner
 el índice Nat antes que el parámetro Type es una buena idea (por
@@ -158,11 +173,6 @@ Test whether the structure is empty. The default implementation is
 > length' (VCons _ as) = SS $ length' as-}
 > length' = foldrN (const SS) SZ
 
-(sera demasiado especifico este fold?)
-
-> foldrN :: (forall m. a -> b m -> b (S m)) -> b Z -> Vec n a -> b n
-> foldrN f e VNil = e
-> foldrN f e (VCons a as) = f a $ foldrN f e as
 
 Returns the size/length of a finite
  structure as an Int. The default implementation is optimized for
@@ -171,9 +181,20 @@ Returns the size/length of a finite
 
 map :: (a -> b) -> [a] -> [b]
 
+> map :: (a -> b) -> Vec n a -> Vec n b
+> map _ VNil         = VNil
+> map f (VCons a as) = VCons (f a) $ map f as
+
 reverse :: [a] -> [a]
 reverse xs returns the elements of xs in reverse order. xs must be
  finite.
+
+> reverse :: ToSNat n => Vec n a -> Vec n a
+> reverse = unFlip . foldlN (flip flipVCons) flipVNil 
+
+
+
+
 
 intersperse :: a -> [a] -> [a]
 The intersperse function takes an element and a list and
@@ -262,6 +283,33 @@ The largest element of a non-empty structure.
 minimum :: forall a. (Foldable t, Ord a) => t a -> a
 The least element of a non-empty structure.
 
+
+folds parametricos en n
+
+> foldrN :: (forall m. a -> b m -> b (S m)) -> b Z -> Vec n a -> b n
+> foldrN f e VNil = e
+> foldrN f e (VCons a as) = f a $ foldrN f e as
+
+
+> foldlN :: forall m n a b . ToSNat m => (forall k. b k -> a -> b (S k)) -> b m -> Vec n a -> b (m :+ n)
+> foldlN f e VNil = gcastWith (mzProof $ toSNat @ m) e 
+> foldlN f e (VCons a as) = gcastWith (msProof (toSNat @ m) (Proxy @ n)) $ foldlN f (f e a) as
+
+> newtype FlipVec a n = FlipVec { unFlip :: Vec n a }
+> flipVCons a = FlipVec . VCons a . unFlip
+> flipVNil  = FlipVec VNil
+>
+
+> mzProof :: forall m . SNat m -> m :~: (m :+ Z) 
+> mzProof  SZ     = Refl
+> mzProof (SS n) = cong $ mzProof n
+
+> msProof :: forall m n . SNat m -> Proxy (S n) ->  (m :+ S n)  :~: S (m :+ n)
+> msProof SZ _     = Refl
+> msProof (SS m) n = cong $ msProof m n 
+
+> cong :: (x :: Nat) :~: (y :: Nat) -> (f x :: Nat) :~: (f y :: Nat)
+> cong Refl = Refl
 
 
 
