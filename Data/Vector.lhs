@@ -49,7 +49,15 @@ ej. para implementar las instancias para la clase Functor)
 > data SomeVec a where
 >   SomeVec :: Vec n a -> SomeVec a
 
-
+> fromSomeVec :: SNat n -> SomeVec a -> Maybe (Vec n a)
+> fromSomeVec n (SomeVec vs) = fromSomeVec' n vs
+>
+> fromSomeVec' :: SNat n -> Vec m a -> Maybe (Vec n a)
+> fromSomeVec' SZ VNil = Just VNil
+> fromSomeVec' SZ _    = Nothing
+> fromSomeVec' (SS _) VNil         = Nothing
+> fromSomeVec' (SS n) (VCons a as) = do as' <- fromSomeVec' n as
+>                                       return $ VCons a as'
 
 (++) :: [a] -> [a] -> [a]
 
