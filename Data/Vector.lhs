@@ -9,6 +9,8 @@
 > {-# LANGUAGE RankNTypes #-}
 > {-# LANGUAGE TypeApplications #-}
 > {-# LANGUAGE ScopedTypeVariables #-}
+> {-# LANGUAGE MultiParamTypeClasses #-}
+> {-# LANGUAGE AllowAmbiguousTypes #-}
 
 > module Data.Vector where
 
@@ -19,7 +21,8 @@
 > import Data.Proxy
 > import Data.Kind
 > import Prelude hiding
->   (head, tail, last, init, uncons, map, filter) -- agregar nombres aca
+>   (head, tail, last, init, uncons, map,
+>    filter, take) -- agregar nombres aca
 
 
 
@@ -39,12 +42,15 @@ ej. para implementar las instancias para la clase Functor)
 > example3 = 'a' :. 'b' :. 'c' :. VNil
 
 > instance Show a => Show (Vec Z a) where
->   show (VNil) = "[]"
+>   show VNil = "[]"
 > instance Show a => Show (Vec (S Z) a) where
->   show (a :. VNil) = '[': show a ++ "]"
+>   show (VCons a VNil) = '[': show a ++ "]"
 > instance (Show a, Show (Vec (S n) a)) => Show (Vec (S (S n)) a) where
->   show (a :. as) = let ('[':shas) = show as
->                    in '[' : show a ++ ", " ++ shas 
+>   show (VCons a as) = let ('[':shas) = show as
+>                       in '[' : show a ++ ", " ++ shas 
+
+^^^ aca hacía pattern matching con :. y AllowAmbiguousTypes lo rompió :O
+
 
 > data SomeVec a where
 >   SomeVec :: Vec n a -> SomeVec a
@@ -380,6 +386,23 @@ Extracting sublists
 
 take :: Int -> [a] -> [a]
 take n, applied to a list xs, returns the prefix of xs of length n, or xs itself if n > length xs:
+
+con Singleton, proxy necesario:
+
+> take :: SNat n -> Proxy m -> Vec (n :+ m) a -> Vec n a
+> take SZ _ _ = VNil
+> take (SS n) proxy (VCons a as) = VCons a $ take n proxy as
+
+con singleton, evitando el proxy aunque generando la TC
+
+> class Take (n :: Nat) (m :: Nat) a where
+>   takeC :: SNat n -> Vec (n :+ m) a -> Vec n a
+
+> instance Take Z m a where
+>   takeC SZ _ = VNil
+
+> instance (Take n m a) => Take (S n) m a where
+>   takeC (SS n) (VCons a as) = VCons a $ takeC @n @m n as 
 
 It is an instance of the more general genericTake, in which n may be of any integral type.
 
