@@ -53,3 +53,17 @@ el core se generan las cadenas de cases).
 
 > cong :: (x :: Nat) :~: (y :: Nat) -> (f x :: Nat) :~: (f y :: Nat)
 > cong Refl = Refl
+
+asi seria con clases:
+
+> class LemmaProof (m :: Nat) where
+>  lemmaSumSucc :: Proxy m -> Proxy (S n) ->  (m :+ S n)  :~: S (m :+ n)
+>
+> instance LemmaProof Z where
+>  lemmaSumSucc _ _ = Refl
+
+> instance LemmaProof m => LemmaProof (S m) where
+>  lemmaSumSucc m n = cong $ lemmaSumSucc (prev m) n  
+
+> prev :: Proxy (S n) -> Proxy n
+> prev _ = Proxy

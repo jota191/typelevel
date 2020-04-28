@@ -162,6 +162,9 @@ Test whether the structure is empty. The default implementation is
 > length' (VCons _ as) = SS $ length' as-}
 > length' = foldrN (const SS) SZ
 
+> length'' :: forall a n . KnownNat n => Vec n a -> SNat n
+> length'' vs = natSing @ n
+
 
 Returns the size/length of a finite
  structure as an Int. The default implementation is optimized for
@@ -183,12 +186,37 @@ reverse xs returns the elements of xs in reverse order. xs must be
 
 
 
-
-
 intersperse :: a -> [a] -> [a]
 The intersperse function takes an element and a list and
  `intersperses' that element between the elements of the list. For
  example,
+
+> type family Intersperse (n :: Nat) :: Nat where
+>   Intersperse Z     = Z
+>   Intersperse (S n) = (S ((S (S Z)) :* n))
+
+> type family IntersperseC (n :: Nat) :: Constraint where
+>   Intersperse Z     = ()
+>   Intersperse (S n) = PrependToAll n
+
+> 
+> intersperse             :: IntersperseC n => a -> Vec n a -> Vec (Intersperse n) a
+> intersperse _   VNil          = VNil
+> intersperse sep (VCons x xs)  = VCons x $ prependToAll sep xs
+
+> class PrependToAll (n :: Nat) where
+>  prependToAll :: a -> Vec n a -> Vec ((S (S Z)) :* n) a
+>
+> instance PrependToAll Z where
+>  prependToAll _ VNil = VNil
+>
+> instance (KnownNat n, PrependToAll n) => PrependToAll (S n) where
+>  prependToAll sep (VCons a as)
+>    = gcastWith (msProof (natSing @ n)  (Proxy @ (S (n :+ Z))) ) 
+>    $ VCons sep $ VCons a $ prependToAll sep as
+>
+
+
 
 intercalate :: [a] -> [[a]] -> [a]
 intercalate xs xss is equivalent to (concat (intersperse xs xss)). It inserts the list xs in between the lists in xss and concatenates the result.
