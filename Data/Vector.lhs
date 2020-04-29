@@ -218,7 +218,7 @@ The intersperse function takes an element and a list and
 >    $ VCons sep $ VCons a $ prependToAll sep as
 >
 
-
+Cuando tenemos una lista de listas como en estos casos, habría que
 
 intercalate :: [a] -> [[a]] -> [a]
 intercalate xs xss is equivalent to (concat (intersperse xs xss)). It inserts the list xs in between the lists in xss and concatenates the result.
@@ -226,12 +226,30 @@ intercalate xs xss is equivalent to (concat (intersperse xs xss)). It inserts th
 intercalate ", " ["Lorem", "ipsum", "dolor"]
 "Lorem, ipsum, dolor"
 
+
+
 transpose :: [[a]] -> [[a]]
 The transpose function transposes the rows and columns of its argument. For example,
 transpose [[1,2,3],[4,5,6]] => [[1,4],[2,5],[3,6]]
 
-If some of the rows are shorter than the following rows, their elements are skipped:
-transpose [[10,11],[20],[],[30,31,32]] => [[10,20,30],[11,31],[32]]
+> type Matrix n m a = Vec n (Vec m a)
+> matrix23 = (2 :. 3 :. (4 :: Int) :. VNil) :.
+>            (3 :. 4 :. 5          :. VNil) :. VNil
+
+> row :: SNat k -> Matrix n m a -> Vec m a
+> row SZ     (VCons r _)  = r
+> row (SS n) (VCons _ rs) = row n rs
+
+> col :: SNat k -> Matrix n m a -> Vec n a
+> col k (VCons r VNil) = indexSing k r :. VNil
+> col k (VCons r rs) = indexSing k r :. col k rs
+
+
+Esto lo escribí para pegarlo en el chat, lo dejo aca
+
+> data Vecs (l :: [Nat]) (a :: Type):: Type where
+>   VecsNil  :: Vecs '[] a
+>   VecsCons :: Vec n a -> Vecs l a -> Vecs (n ': l) a
 
 subsequences :: [a] -> [[a]]
 The subsequences function returns the list of all subsequences of the argument.
@@ -541,6 +559,13 @@ claramente no con SomeVec porque no hay acceso a los índices,
 List index (subscript) operator,
  starting from 0. It is an instance of the more general genericIndex,
  which takes an index of any integral type.
+
+> indexSing :: SNat i -> Vec n a -> a
+> indexSing SZ     (VCons a _)  = a
+> indexSing (SS i) (VCons _ as) = indexSing i as
+
+
+
 
 elemIndex :: Eq a => a -> [a] -> Maybe Int
 
