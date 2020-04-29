@@ -22,7 +22,7 @@
 > import Data.Kind
 > import Prelude hiding
 >   (head, tail, last, init, uncons, map,
->    filter, take, zipWith, replicate, scanl) -- agregar nombres aca
+>    filter, take, zipWith, replicate, scanl, (!!)) -- agregar nombres aca
 
 
 
@@ -576,12 +576,18 @@ List index (subscript) operator,
  starting from 0. It is an instance of the more general genericIndex,
  which takes an index of any integral type.
 
+esta funcion es parcial!
+
 > indexSing :: SNat i -> Vec n a -> a
 > indexSing SZ     (VCons a _)  = a
 > indexSing (SS i) (VCons _ as) = indexSing i as
 
+> index :: Fin n -> Vec n a -> a
+> index FZ     (VCons a _)  = a
+> index (FS i) (VCons _ as) = index i as
 
-
+> infixl 9 !!
+> (!!) = flip index
 
 elemIndex :: Eq a => a -> [a] -> Maybe Int
 

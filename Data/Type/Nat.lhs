@@ -57,6 +57,10 @@ TODO: pasar a singletons
 > instance KnownNat n => KnownNat (S n) where
 >  natSing = SS natSing
 
+> data Fin (n :: Nat) where
+>   FZ :: Fin (S k)
+>   FS :: Fin k -> Fin (S k)
+
 --
 Al escribir esto estoy pensando en que en las pruebas voy a usar
 Singleton solo si es necesario hacer pattern matching o llamar
