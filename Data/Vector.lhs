@@ -22,7 +22,7 @@
 > import Data.Kind
 > import Prelude hiding
 >   (head, tail, last, init, uncons, map,
->    filter, take, zipWith, replicate) -- agregar nombres aca
+>    filter, take, zipWith, replicate, scanl) -- agregar nombres aca
 
 
 
@@ -87,22 +87,11 @@ head :: [a] -> a
 
 last :: [a] -> a
 
-> class Last (n :: Nat) where
->   last :: Vec (S n) a -> a
-
-> instance Last Z where
->   last (VCons a VNil) = a
-
-> instance Last n => Last (S n) where
->   last (VCons a as) = last as
-
-(no me gusta que el índice no sea el largo del vector, pero solo se me
- ocurre generar una constraint)
 
 
-> last' :: Vec (S n) a -> a
-> last' (VCons a VNil) = a 
-> last' (VCons a as@(VCons _ _))   = last' as 
+> last :: Vec (S n) a -> a
+> last (VCons a VNil) = a 
+> last (VCons a as@(VCons _ _))   = last as 
 
 tail :: [a] -> [a]
 
@@ -112,19 +101,10 @@ tail :: [a] -> [a]
 
 init :: [a] -> [a]
 
-> class Init (n :: Nat) where
->   init :: Vec (S n) a -> Vec n a
 
-> instance Init Z where
->   init (a :. VNil) = VNil
-
-> instance Init n => Init (S n) where
->   init (a :. as) = a :. init as
-
-
-> init' :: Vec (S n) a -> Vec n a
-> init' (VCons a VNil) = VNil 
-> init' (VCons a as@(VCons _ _))   = VCons a $ init' as 
+> init :: Vec (S n) a -> Vec n a
+> init (VCons a VNil) = VNil 
+> init (VCons a as@(VCons _ _))   = VCons a $ init as 
 
 Return all the elements of a list except the last one. The list must
  be non-empty.
@@ -288,6 +268,10 @@ concatenar vector con vectores todos del mismo largo
 concatMap :: Foldable t => (a -> [b]) -> t a -> [b]
 Map a function over all the elements of a container and concatenate the resulting lists.
 
+> concatMap' :: (a -> Vec m b) -> Vec n a -> Vec (n :* m) b
+> concatMap' _ VNil          = VNil
+> concatMap' f (VCons a as)  = append (f a) $ concatMap' f as
+
 and :: Foldable t => t Bool -> Bool
 and returns the conjunction of a container of Bools. For the result to be True, the container must be finite; False, however, results from a False value finitely far from the left end.
 
@@ -338,10 +322,21 @@ Scans
 
 scanl :: (b -> a -> b) -> b -> [a] -> [b]
 
+
+> scanl :: (b -> a -> b) -> b -> Vec n a -> Vec (S n) b
+> scanl f q VNil         = VCons q VNil
+> scanl f q (VCons x xs) = VCons q $ scanl f (f q x) xs
+
 scanl' :: (b -> a -> b) -> b -> [a] -> [b]
 A strictly accumulating version of scanl
 
 scanl1 :: (a -> a -> a) -> [a] -> [a]
+
+> scanl1 :: (a -> a -> a) -> Vec n a -> Vec n a
+> scanl1 f VNil         = VNil
+> scanl1 f (VCons x xs) = scanl f x xs
+
+
 scanl1 is a variant of scanl that has no starting value argument:
 
 scanl1 f [x1, x2, ...] == [x1, x1 `f` x2, ...]
@@ -415,7 +410,18 @@ con singleton, evitando el proxy aunque generando la TC
 > instance (Take n m a) => Take (S n) m a where
 >   takeC (SS n) (VCons a as) = VCons a $ takeC @n @m n as 
 
-It is an instance of the more general genericTake, in which n may be of any integral type.
+
+> type family TakeRes (n :: Nat) (m :: Nat) :: Nat where
+>   TakeRes Z     m     = Z
+>   TakeRes (S n) Z     = Z
+>   TakeRes (S n) (S m) = S (TakeRes n m)
+>
+> take' :: SNat n -> Vec m a -> Vec (TakeRes n m) a
+> take' SZ     _            = VNil
+> take' (SS _) VNil         = VNil
+> take' (SS n) (VCons a as) = VCons a $ take' n  as
+ 
+It is an instance of the more general genericT ake, in which n may be of any integral type.
 
 drop :: Int -> [a] -> [a]
 drop n xs returns the suffix of xs after the first n elements, or [] if n > length xs:
@@ -590,6 +596,8 @@ idea: definir tupla general como HList, luego los zips para ello
 zipWith :: (a -> b -> c) -> [a] -> [b] -> [c]
 zipWith3 :: (a -> b -> c -> d) -> [a] -> [b] -> [c] -> [d]
 zipWith4 :: (a -> b -> c -> d -> e) -> [a] -> [b] -> [c] -> [d] -> [e]
+
+
 
 etc..
 
