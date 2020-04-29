@@ -22,7 +22,7 @@
 > import Data.Kind
 > import Prelude hiding
 >   (head, tail, last, init, uncons, map,
->    filter, take) -- agregar nombres aca
+>    filter, take, zipWith, replicate) -- agregar nombres aca
 
 
 
@@ -202,7 +202,7 @@ The intersperse function takes an element and a list and
 >   Intersperse (S n) = PrependToAll n
 
 > 
-> intersperse             :: IntersperseC n => a -> Vec n a -> Vec (Intersperse n) a
+> intersperse :: IntersperseC n => a -> Vec n a -> Vec (Intersperse n) a
 > intersperse _   VNil          = VNil
 > intersperse sep (VCons x xs)  = VCons x $ prependToAll sep xs
 
@@ -229,6 +229,10 @@ intercalate ", " ["Lorem", "ipsum", "dolor"]
 transpose :: [[a]] -> [[a]]
 The transpose function transposes the rows and columns of its argument. For example,
 transpose [[1,2,3],[4,5,6]] => [[1,4],[2,5],[3,6]]
+
+> transpose :: KnownNat m => Vec n (Vec m a) -> Vec m (Vec n a)
+> transpose VNil         = replicate natSing VNil 
+> transpose (VCons a as) = zipWith VCons a $ transpose as 
 
 If some of the rows are shorter than the following rows, their elements are skipped:
 transpose [[10,11],[20],[],[30,31,32]] => [[10,20,30],[11,31],[32]]
@@ -366,6 +370,11 @@ repeat x is an infinite list, with x the value of every element.
 
 replicate :: Int -> a -> [a]
 replicate n x is a list of length n with x the value of every element. It is an instance of the more general genericReplicate, in which n may be of any integral type.
+
+
+> replicate :: SNat n -> a -> Vec n a
+> replicate SZ     _ = VNil
+> replicate (SS n) a = VCons a $ replicate n a
 
 cycle :: [a] -> [a]
 cycle ties a finite list into a circular one, or equivalently, the infinite repetition of the original list. It is the identity on infinite lists.
@@ -574,6 +583,9 @@ zip7 :: [a] -> [b] -> [c] -> [d] -> [e] -> [f] -> [g] -> [(a, b, c, d, e,f,g)]
 
 idea: definir tupla general como HList, luego los zips para ello
 
+> zipWith :: (a -> b -> c) -> Vec n a -> Vec n b -> Vec n c
+> zipWith _ VNil         VNil         = VNil
+> zipWith f (VCons a as) (VCons b bs) = VCons (f a b) $ zipWith f as bs
 
 zipWith :: (a -> b -> c) -> [a] -> [b] -> [c]
 zipWith3 :: (a -> b -> c -> d) -> [a] -> [b] -> [c] -> [d]
