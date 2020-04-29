@@ -129,8 +129,6 @@ encarga porque salen computando la TF, pero las agrego igual, por completitud:
 
 > th_mul_S_l :: SNat n -> SNat m -> S n :* m :~: n :* m :+ m 
 > th_mul_S_l  SZ    m      = th_add_Z_r m
-> th_mul_S_l (SS n) SZ     = let lem = th_mul_Z_r n
->                            in gcastWith lem Refl
 > th_mul_S_l (SS n) m = let ih = th_mul_S_l n m
 >                           aux = (th_add_comm m
 >                                  (m `addSing` (n `mulSing` m)))
