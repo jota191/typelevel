@@ -18,22 +18,30 @@
 > import Data.Proxy
 > import Data.Kind
 
-> type family (m :: Nat) :+ (n :: Nat) :: Nat where
->   Z     :+ n = n
->   (S m) :+ n = S (m :+ n)
+> type family (n :: Nat) :+ (m :: Nat) :: Nat where
+>   Z     :+ m = m
+>   (S n) :+ m = S (n :+ m)
 
-> type family (m :: Nat) :* (n :: Nat) :: Nat where
->   Z     :* n = Z
->   (S m) :* n = n :+ (m :* n)
+> type family (n :: Nat) :* (m :: Nat) :: Nat where
+>   Z     :* m = Z
+>   (S n) :* m = m :+ (n :* m)
 
 > type family Pred (n :: Nat) :: Nat where
 >   Pred Z     = Z
 >   Pred (S n) = n
 
-> type family (m :: Nat) :- (n :: Nat) :: Nat where
->   Z     :- n     = Z
->   m     :- Z     = m
->   (S m) :- (S n) = m :- n
+> type family (n :: Nat) :- (m :: Nat) :: Nat where
+>   Z     :- m     = Z
+>   n     :- Z     = n
+>   (S n) :- (S m) = n :- m
+
+> addSing :: SNat n -> SNat m -> SNat (n :+ m)
+> addSing  SZ    m = m
+> addSing (SS n) m = SS $ addSing n m
+
+> mulSing :: SNat n -> SNat m -> SNat (n :* m)
+> mulSing  SZ    m = SZ
+> mulSing (SS n) m = m `addSing` mulSing n m
 
 TODO: pasar a singletons
 
@@ -98,7 +106,8 @@ la izquierda de la igualdad:
 > th_add_Z_r (SS n) = cong $ th_add_Z_r n
 
 
-Este no lo vamos a usar nunca, el typechecker se encarga pero lo agrego igual:
+Pruebas como la siguiente no las vamos a usar nunca, el typechecker se
+encarga porque salen computando la TF, pero las agrego igual, por completitud:
 
 > th_add_Z_l :: forall n . (Z :+ n) :~: n
 > th_add_Z_l = Refl
@@ -111,8 +120,31 @@ Este no lo vamos a usar nunca, el typechecker se encarga pero lo agrego igual:
 > th_add_S_r SZ p     = Refl
 > th_add_S_r (SS n) p = cong $ th_add_S_r n p
 
+> th_mul_Z_l :: Z :* n :~: Z
+> th_mul_Z_l = Refl
+
+> th_mul_Z_r :: SNat n -> n :* Z :~: Z
+> th_mul_Z_r SZ     = Refl
+> th_mul_Z_r (SS n) = th_mul_Z_r n
+
 > th_mul_S_l :: SNat n -> SNat m -> S n :* m :~: n :* m :+ m 
-> th_mul_S_l n = undefined
+> th_mul_S_l  SZ    m      = th_add_Z_r m
+> th_mul_S_l (SS n) SZ     = let lem = th_mul_Z_r n
+>                            in gcastWith lem Refl
+> th_mul_S_l (SS n) m = let ih = th_mul_S_l n m
+>                           aux = (th_add_comm m
+>                                  (m `addSing` (n `mulSing` m)))
+>                       in  gcastWith aux Refl
 
 > th_add_comm :: forall n m . SNat n -> SNat m -> n :+ m :~: m :+ n
-> th_add_comm SZ m = sym $ th_add_Z_r m 
+> th_add_comm SZ m     = sym $ th_add_Z_r m
+> th_add_comm (SS n) m = let lem = sym $ th_add_S_r m $ proxyFrom n
+>                            ih  = th_add_comm n m
+>                        in  gcastWith ih lem
+
+> th_add_assoc :: forall n m k . SNat n -> Proxy m -> Proxy k
+>              -> n :+ m :+ k :~: n :+ (m :+ k)
+> th_add_assoc  SZ    m k = Refl
+> th_add_assoc (SS n) m k = let ih = th_add_assoc n m k
+>                           in  cong ih
+
