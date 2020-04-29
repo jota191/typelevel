@@ -279,6 +279,12 @@ Special folds
 concat :: Foldable t => t [a] -> [a]
 The concatenation of all the elements of a container of lists.
 
+concatenar vector con vectores todos del mismo largo
+
+> concat' :: Vec n (Vec m a) -> Vec (n :* m) a
+> concat' VNil          = VNil
+> concat' (VCons a as)  = append a $ concat' as
+
 concatMap :: Foldable t => (a -> [b]) -> t a -> [b]
 Map a function over all the elements of a container and concatenate the resulting lists.
 
