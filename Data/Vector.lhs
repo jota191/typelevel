@@ -140,13 +140,9 @@ Decompose a list into its head and tail. If the list is empty, returns
 (no creo que el uncons con Maybe sea de mucha utilidad, pero
 esta puede ser una implementacion)
 
-> uncons :: Vec n a -> Maybe (a, Vec (SafePred n) a)
+> uncons :: Vec n a -> Maybe (a, Vec (Pred n) a)
 > uncons VNil         = Nothing
 > uncons (VCons a as) = Just (a, as)
-
-> type family SafePred (n :: Nat) :: Nat where
->   SafePred Z     = Z
->   SafePred (S n) = n
 
 > null :: Vec n a -> Bool
 > null = foldr (\_ _ -> False) True
@@ -575,6 +571,9 @@ zip4 :: [a] -> [b] -> [c] -> [d] -> [(a, b, c, d)]
 zip5 :: [a] -> [b] -> [c] -> [d] -> [e] -> [(a, b, c, d, e)]
 zip6 :: [a] -> [b] -> [c] -> [d] -> [e] -> [f] -> [(a, b, c, d, e, f)]
 zip7 :: [a] -> [b] -> [c] -> [d] -> [e] -> [f] -> [g] -> [(a, b, c, d, e,f,g)]
+
+idea: definir tupla general como HList, luego los zips para ello
+
 
 zipWith :: (a -> b -> c) -> [a] -> [b] -> [c]
 zipWith3 :: (a -> b -> c -> d) -> [a] -> [b] -> [c] -> [d]
